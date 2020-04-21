@@ -1,3 +1,8 @@
+# Tecnologia WEB
+# AC04 SI/ADS 2A- Tutorial Flask
+# alunos: carlos.durante@aluno.faculdadeimpacta.com.br
+# suellen.theodoro@aluno.faculdadeimpacta.com.br
+
 # coding: utf-8
 
 # todos os imports

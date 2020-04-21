@@ -4,9 +4,10 @@
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
+from contextlib import closing
 
 # configuração
-DATABASE = './tmp/flaskr.db'
+DATABASE = './tmp/flaskr.bd'
 DEBUG = True
 SECRET_KEY = 'development key'
 USERNAME = 'admin'
@@ -33,12 +34,54 @@ def criar_bd():
 def pre_requisicao():
     g.bd = conectar_bd()
 
+
 @app.teardown_request
 def encerrar_requisicao(exception):
     g.bd.close()
 
 
-if __name__ == '__main__':
-    app.run()
+@app.route('/')
+def exibir_entradas():
+    sql = '''select titulo, texto from entradas order by id desc'''
+    cur = g.bd.execute(sql)
+    entradas = [dict(titulo=titulo, texto=texto)
+                for titulo, texto in cur.fetchall()]
+    return render_template('exibir_entradas.html', entradas=entradas)
 
-from contextlib import closing
+
+@app.route('/inserir', methods=['POST'])
+def inserir_entrada():
+    if not session.get('logado'):
+        abort(401)
+    sql = '''insert into entradas (titulo, texto) values (?, ?)'''
+    g.bd.execute(sql, [request.form['titulo'], request.form['texto']])
+    g.bd.commit()
+    flash('Nova entrada registrada com sucesso')
+    return redirect(url_for('exibir_entradas'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    erro = None
+    if request.method == 'POST':
+        if request.form['username'] != app.config['USERNAME']:
+            erro = 'Usuário inválido'
+        elif request.form['password'] != app.config['PASSWORD']:
+            erro = 'Senha inválida'
+        else:
+            session['logado'] = True
+            flash('Login OK')
+            return redirect(url_for('exibir_entradas'))
+    return render_template('login.html', erro=erro)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('logado', None)
+    flash('Logout OK')
+    return redirect(url_for('exibir_entradas'))
+
+
+if __name__ == '__main__':
+    criar_bd()
+    app.run()
